@@ -97,7 +97,13 @@
         // Auth
         function signInWithGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
-            firebase.auth().signInWithPopup(provider);
+            // 모바일: redirect, 데스크톱: popup
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                firebase.auth().signInWithRedirect(provider);
+            } else {
+                firebase.auth().signInWithPopup(provider);
+            }
         }
 
         function signOutUser() {
