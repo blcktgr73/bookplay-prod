@@ -7,7 +7,7 @@
     "start": "cd public && python -m http.server 8000",
     "serve": "cd public && npx serve -s . -p 8000",
     "dev": "cd public && python -m http.server 8080",
-    "build": "echo '정적 사이트이므로 별도 빌드 과정이 필요하지 않습니다.'",
+    "build": "cd functions && npm run build",
     "deploy": "firebase deploy --only hosting",
     "preview": "firebase serve --only hosting"
   },
