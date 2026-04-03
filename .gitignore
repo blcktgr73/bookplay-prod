@@ -2,7 +2,7 @@
 firebase-debug.log
 firebase-debug.*.log
 .firebase/
-.firebaserc
+# .firebaserc — tracked for project config
 
 # Logs
 logs
@@ -71,7 +71,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public — tracked for Firebase Hosting
 
 # Storybook build outputs
 .out

@@ -8,9 +8,37 @@
     ],
     "rewrites": [
       {
+        "source": "/api/tts/openai",
+        "function": "ttsOpenai"
+      },
+      {
+        "source": "/api/tts/gemini",
+        "function": "ttsGemini"
+      },
+      {
+        "source": "/api/admin/users",
+        "function": "adminListUsers"
+      },
+      {
+        "source": "/api/admin/role",
+        "function": "adminUpdateRole"
+      },
+      {
+        "source": "/api/admin/quota",
+        "function": "adminUpdateQuota"
+      },
+      {
+        "source": "/api/user/profile",
+        "function": "userProfile"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
   }
 }

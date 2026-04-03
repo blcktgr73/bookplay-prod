@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookPlay Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="flex items-center justify-center min-h-screen">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96 text-center">
+            <h1 class="text-2xl font-bold mb-4">BookPlay Admin</h1>
+            <p class="text-gray-500 mb-6">관리자 로그인</p>
+            <button id="btnLogin" onclick="signInWithGoogle()"
+                class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition">
+                Google 계정으로 로그인
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminScreen" class="hidden">
+        <nav class="bg-white shadow-sm px-6 py-3 flex items-center justify-between">
+            <h1 class="text-lg font-bold">BookPlay Admin</h1>
+            <div class="flex items-center gap-4">
+                <span id="userEmail" class="text-sm text-gray-500"></span>
+                <button onclick="signOutUser()" class="text-sm text-red-500 hover:underline">로그아웃</button>
+            </div>
+        </nav>
+
+        <!-- My Profile -->
+        <div class="max-w-4xl mx-auto p-6">
+            <div id="profileCard" class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-3">내 프로필</h2>
+                <div id="profileInfo" class="text-sm text-gray-600"></div>
+            </div>
+
+            <!-- User Management (admin only) -->
+            <div id="adminPanel" class="hidden">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-lg font-semibold mb-4">사용자 관리</h2>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-2">이메일</th>
+                                <th class="text-left py-2">역할</th>
+                                <th class="text-left py-2">일일 쿼터</th>
+                                <th class="text-left py-2">오늘 사용</th>
+                                <th class="text-left py-2">최근 접속</th>
+                                <th class="text-left py-2">작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Access Denied -->
+            <div id="accessDenied" class="hidden bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <p class="text-red-600">관리자 권한이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase config — 프로젝트에 맞게 수정 필요
+        const firebaseConfig = {
+            apiKey: "AIzaSyBVVcnNRquCBw9Y3QU3yN7ADmHTY_qpGtY",
+            authDomain: "bookplay-production.firebaseapp.com",
+            projectId: "bookplay-production",
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        let currentUser = null;
+        let idToken = null;
+
+        async function getToken() {
+            if (!currentUser) return null;
+            idToken = await currentUser.getIdToken();
+            return idToken;
+        }
+
+        async function apiCall(path, method = "GET", body = null) {
+            const token = await getToken();
+            const opts = {
+                method,
+                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(path, opts);
+            return res.json();
+        }
+
+        // Auth
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider);
+        }
+
+        function signOutUser() {
+            firebase.auth().signOut();
+        }
+
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("adminScreen").classList.remove("hidden");
+                document.getElementById("userEmail").textContent = user.email;
+                await loadProfile();
+            } else {
+                currentUser = null;
+                document.getElementById("loginScreen").classList.remove("hidden");
+                document.getElementById("adminScreen").classList.add("hidden");
+            }
+        });
+
+        async function loadProfile() {
+            try {
+                const data = await apiCall("/api/user/profile");
+                const p = data.profile;
+                const u = data.todayUsage;
+                document.getElementById("profileInfo").innerHTML = `
+                    <p>이메일: <strong>${p.email}</strong></p>
+                    <p>역할: <strong>${p.role}</strong></p>
+                    <p>일일 쿼터: ${p.dailyQuota}회</p>
+                    <p>오늘 사용: ${u.totalCalls || 0}회</p>
+                `;
+
+                if (p.role === "owner" || p.role === "admin") {
+                    document.getElementById("adminPanel").classList.remove("hidden");
+                    document.getElementById("accessDenied").classList.add("hidden");
+                    await loadUsers();
+                } else {
+                    document.getElementById("adminPanel").classList.add("hidden");
+                    document.getElementById("accessDenied").classList.remove("hidden");
+                }
+            } catch (e) {
+                document.getElementById("profileInfo").innerHTML = `<p class="text-red-500">프로필 로드 실패</p>`;
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const data = await apiCall("/api/admin/users");
+                const tbody = document.getElementById("userTableBody");
+                tbody.innerHTML = data.users.map(u => {
+                    const lastActive = u.lastActiveAt?._seconds
+                        ? new Date(u.lastActiveAt._seconds * 1000).toLocaleDateString()
+                        : "-";
+                    const roleColor = u.role === "owner" ? "text-purple-600" : u.role === "admin" ? "text-blue-600" : u.role === "blocked" ? "text-red-600" : "text-gray-600";
+                    const isOwner = u.role === "owner";
+                    return `<tr class="border-b">
+                        <td class="py-2">${u.email}</td>
+                        <td class="py-2 font-medium ${roleColor}">${u.role}</td>
+                        <td class="py-2">${u.dailyQuota}</td>
+                        <td class="py-2">-</td>
+                        <td class="py-2">${lastActive}</td>
+                        <td class="py-2">
+                            ${isOwner ? "-" : `
+                                <select onchange="changeRole('${u.uid}', this.value)" class="text-xs border rounded px-1 py-0.5">
+                                    <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
+                                    <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+                                    <option value="blocked" ${u.role === "blocked" ? "selected" : ""}>blocked</option>
+                                </select>
+                            `}
+                        </td>
+                    </tr>`;
+                }).join("");
+            } catch (e) {
+                console.error("Failed to load users", e);
+            }
+        }
+
+        async function changeRole(uid, role) {
+            if (!confirm(`역할을 '${role}'로 변경하시겠습니까?`)) {
+                await loadUsers();
+                return;
+            }
+            await apiCall("/api/admin/role", "POST", { uid, role });
+            await loadUsers();
+        }
+    </script>
+</body>
+</html>
