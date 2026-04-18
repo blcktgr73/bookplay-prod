@@ -16,7 +16,7 @@ interface AuthUser {
   role: string;
 }
 
-async function authenticate(req: any): Promise<AuthUser | null> {
+export async function authenticate(req: any): Promise<AuthUser | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return null;
 
@@ -52,14 +52,14 @@ async function authenticate(req: any): Promise<AuthUser | null> {
   }
 }
 
-function requireRole(user: AuthUser | null, ...roles: string[]): boolean {
+export function requireRole(user: AuthUser | null, ...roles: string[]): boolean {
   return user !== null && roles.includes(user.role);
 }
 
 // -------------------------------------------------------------------
 // Usage tracking
 // -------------------------------------------------------------------
-async function checkAndIncrementUsage(uid: string, provider: string): Promise<{ allowed: boolean; used: number; quota: number }> {
+export async function checkAndIncrementUsage(uid: string, provider: string): Promise<{ allowed: boolean; used: number; quota: number }> {
   const userDoc = await db.collection("users").doc(uid).get();
   const quota = userDoc.data()?.dailyQuota ?? DEFAULT_DAILY_QUOTA;
 
