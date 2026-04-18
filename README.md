@@ -5,6 +5,8 @@ Firebase Authentication을 사용한 정적 웹 애플리케이션입니다.
 > **📋 작업 계획(TODO/ROADMAP)은 [BookPlay-Pro/docs/ROADMAP.md](https://github.com/blcktgr73/BookPlay-Pro/blob/main/docs/ROADMAP.md)에서 통합 관리합니다.**
 > Android 앱과 Firebase 서버를 한 곳에서 관리합니다.
 
+> 📋 Cross-project 운영 / 보안 / 정책은 [palab-platform](https://github.com/blcktgr73/palab-platform) (Private)에서 통합 관리됩니다.
+
 ## 🚀 프로젝트 개요
 
 BookPlay는 Firebase Authentication만을 사용하여 구현된 정적 웹 애플리케이션입니다. Google 계정을 통한 간편 로그인과 사용자 정보 관리 기능을 제공합니다.
